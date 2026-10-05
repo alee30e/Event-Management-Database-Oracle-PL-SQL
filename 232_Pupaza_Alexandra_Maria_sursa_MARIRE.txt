@@ -1,0 +1,2039 @@
+-- Exercitiul 4
+CREATE SEQUENCE seq_utilizator
+START WITH 1
+INCREMENT BY 1;
+
+CREATE TABLE utilizator (
+    utilizator_id NUMBER PRIMARY KEY,
+    nume VARCHAR2(50) NOT NULL,
+    prenume VARCHAR2(50) NOT NULL,
+    email VARCHAR2(30) NOT NULL
+);
+
+CREATE OR REPLACE TRIGGER trig_utilizator_id
+BEFORE INSERT ON utilizator
+FOR EACH ROW
+BEGIN
+    IF :new.utilizator_id IS NULL THEN
+        SELECT seq_utilizator.NEXTVAL
+        INTO :new.utilizator_id
+        FROM dual;
+    END IF;
+END;
+/
+--drop table client;
+CREATE TABLE client(
+    utilizator_id NUMBER PRIMARY KEY,
+    data_nasterii DATE,
+    data_inregistrare DATE,
+    ocupatie VARCHAR(100),
+    CONSTRAINT fk_client_utilizator
+    FOREIGN KEY(utilizator_id) REFERENCES utilizator(utilizator_id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE organizator(
+    utilizator_id NUMBER PRIMARY KEY,
+    ani_experienta NUMBER,
+    CONSTRAINT fk_organizator_utilizator
+    FOREIGN KEY (utilizator_id) REFERENCES utilizator(utilizator_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_client_nou
+BEFORE INSERT OR UPDATE ON client
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM organizator
+    WHERE utilizator_id = :new.utilizator_id;
+    
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR (-20001, 
+        'Utilizatorul are deja rol de organizator, nu poate fi si client');
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER trig_organizator_nou
+BEFORE INSERT OR UPDATE ON client
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM client
+    WHERE utilizator_id = :new.utilizator_id;
+    
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR (-20002, 
+        'Utilizatorul are deja rol de client, nu poate fi si organizator');
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_oras
+START WITH 100
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE oras(
+    oras_id NUMBER PRIMARY KEY,
+    nume VARCHAR2(20) NOT NULL
+);
+
+CREATE OR REPLACE TRIGGER trig_oras
+BEFORE INSERT ON oras
+FOR EACH ROW
+BEGIN
+    IF :new.oras_id IS NULL THEN
+        SELECT seq_oras.NEXTVAL
+        INTO :new.oras_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_locatie
+START WITH 50
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE locatie(
+    locatie_id NUMBER PRIMARY KEY,
+    nume VARCHAR2(100) NOT NULL,
+    adresa VARCHAR2(200) NOT NULL,
+    capacitate NUMBER NOT NULL,
+    oras_id NUMBER NOT NULL,
+    CONSTRAINT fk_locatie_oras
+    FOREIGN KEY(oras_id) REFERENCES oras(oras_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_locatie
+BEFORE INSERT ON locatie
+FOR EACH ROW
+BEGIN
+    IF :new.locatie_id IS NULL THEN
+        SELECT seq_locatie.NEXTVAL INTO :new.locatie_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_artist
+START WITH 150
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE artist(
+    artist_id NUMBER PRIMARY KEY,
+    nume VARCHAR2(50) NOT NULL,
+    nume_scena VARCHAR(50),
+    email VARCHAR2(30)
+);
+
+CREATE OR REPLACE TRIGGER trig_artist
+BEFORE INSERT ON artist
+FOR EACH ROW
+BEGIN
+    IF :new.artist_id IS NULL THEN
+        SELECT seq_artist.NEXTVAL INTO :new.artist_id
+        FROM dual;
+    END IF;
+END;
+/
+
+ALTER TABLE sponsor
+ADD nume VARCHAR2(100) NOT NULL;
+
+CREATE SEQUENCE seq_sponsor
+START WITH 200
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE sponsor(
+    sponsor_id NUMBER PRIMARY KEY,
+    numar_telefon VARCHAR2(10),
+    email VARCHAR2(30)
+);
+
+CREATE OR REPLACE TRIGGER trig_sponsor
+BEFORE INSERT ON sponsor
+FOR EACH ROW
+BEGIN
+    IF :new.sponsor_id IS NULL THEN
+        SELECT seq_sponsor.NEXTVAL INTO :new.sponsor_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_produs
+START WITH 300
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE produs(
+    produs_id NUMBER PRIMARY KEY,
+    nume VARCHAR2(30),
+    descriere VARCHAR2(300),
+    valoare NUMBER
+);
+
+CREATE OR REPLACE TRIGGER trig_produs
+BEFORE INSERT ON produs
+FOR EACH ROW
+BEGIN
+    IF :new.produs_id IS NULL THEN
+        SELECT seq_produs.NEXTVAL INTO :new.produs_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_eveniment
+START WITH 400
+INCREMENT BY 1
+NOCYCLE;
+--drop table oras;
+--drop table locatie;
+--drop table utilizator;
+--drop table eveniment;
+--drop table bilet;
+--drop table tip_bilet;
+--drop table categorie;
+--drop table recenzie;
+--drop table plata;
+
+CREATE TABLE eveniment(
+    eveniment_id NUMBER PRIMARY KEY,
+    titlu VARCHAR2(50) NOT NULL,
+    data DATE NOT NULL,
+    descriere VARCHAR2(300),
+    nr_bilete NUMBER,
+    restrictie_varsta NUMBER,
+    organizator_id NUMBER NOT NULL,
+    locatie_id NUMBER NOT NULL,
+    
+    CONSTRAINT fk_even_organizator
+    FOREIGN KEY(organizator_id) REFERENCES organizator(utilizator_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_even_locatie
+    FOREIGN KEY(locatie_id) REFERENCES locatie(locatie_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_eveniment
+BEFORE INSERT ON eveniment
+FOR EACH ROW
+BEGIN
+    IF :new.eveniment_id IS NULL THEN
+        SELECT seq_eveniment.NEXTVAL INTO :new.eveniment_id
+        FROM dual;
+    END IF;
+END;
+/
+DROP SEQUENCE seq_categorie;
+CREATE SEQUENCE seq_categorie
+START WITH 450
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE categorie(
+    categorie_id NUMBER PRIMARY KEY,
+    nume VARCHAR2(50),
+    descriere VARCHAR2(300)
+);
+
+CREATE OR REPLACE TRIGGER trig_categorie
+BEFORE INSERT ON categorie
+FOR EACH ROW
+BEGIN
+    IF :new.categorie_id IS NULL THEN
+        SELECT seq_categorie.NEXTVAL INTO :new.categorie_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_recenzie
+START WITH 1100
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE recenzie(
+    recenzie_id NUMBER PRIMARY KEY,
+    rating NUMBER(1) NOT NULL,
+    comentariu VARCHAR2(500),
+    utilizator_id NUMBER NOT NULL,
+    eveniment_id NUMBER NOT NULL,
+    CONSTRAINT val_rating CHECK(rating BETWEEN 1 AND 5),
+    CONSTRAINT fk_recenzie_utilizator
+    FOREIGN KEY(utilizator_id) REFERENCES client(utilizator_id)
+    ON DELETE CASCADE,
+    CONSTRAINT fk_recenzie_eveniment
+    FOREIGN KEY(eveniment_id) REFERENCES eveniment(eveniment_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_recenzie
+BEFORE INSERT ON recenzie
+FOR EACH ROW
+BEGIN
+    IF :new.recenzie_id IS NULL THEN
+        SELECT seq_recenzie.NEXTVAL INTO :new.recenzie_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_factura
+START WITH 1200
+INCREMENT BY 1
+NOCYCLE;
+ALTER TABLE factura
+ADD utilizator_id NUMBER;
+
+ALTER TABLE factura
+MODIFY utilizator_id NUMBER NOT NULL;
+
+
+ALTER TABLE factura
+ADD CONSTRAINT fk_factura_utilizator
+FOREIGN KEY(utilizator_id)
+REFERENCES client(utilizator_id)
+ON DELETE CASCADE;
+
+CREATE TABLE factura(
+    factura_id NUMBER PRIMARY KEY,
+    data DATE,
+    suma_totala NUMBER,
+    mod_plata VARCHAR2(10)
+);
+
+CREATE OR REPLACE TRIGGER trig_factura_modplata
+BEFORE INSERT OR UPDATE ON factura
+FOR EACH ROW
+BEGIN
+    IF :new.factura_id IS NULL THEN
+        SELECT seq_factura.NEXTVAL INTO :new.factura_id
+        FROM dual;
+    END IF;
+    IF :new.suma_totala < 500 and :new.mod_plata <> 'integral' THEN
+        RAISE_APPLICATION_ERROR(-20003, 'Suma < 500, nu se poate plati in rate!');
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_plata
+START WITH 500
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE plata(
+    plata_id NUMBER PRIMARY KEY,
+    tip_plata VARCHAR2(10),
+    data DATE,
+    suma_platita NUMBER NOT NULL,
+    factura_id NUMBER NOT NULL,
+    CONSTRAINT fk_plata_factura
+    FOREIGN KEY(factura_id) REFERENCES factura(factura_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_plata
+BEFORE INSERT ON plata
+FOR EACH ROW
+DECLARE
+    v_suma_total factura.suma_totala%TYPE;
+    v_mod_plata factura.mod_plata%TYPE;
+    v_suma_prezent factura.suma_totala%TYPE;
+BEGIN
+    IF :new.plata_id IS NULL THEN
+        SELECT seq_plata.NEXTVAL INTO :new.plata_id
+        FROM dual;
+    END IF;
+    
+    SELECT mod_plata, suma_totala INTO v_mod_plata, v_suma_total
+    FROM factura
+    WHERE factura_id = :new.factura_id;
+    
+    SELECT NVL(SUM(suma_platita), 0) INTO v_suma_prezent
+    FROM plata
+    WHERE factura_id = :new.factura_id;
+    
+    IF v_suma_prezent + :new.suma_platita > v_suma_total THEN
+        dbms_output.put_line('Mai trebuie platit doar ' || v_suma_total-(v_suma_prezent+ :new.suma_platita) || 'lei' );
+        RAISE_APPLICATION_ERROR(-20006, 'Suma platilor depaseste suma totala!');
+    END IF;
+    
+    IF v_suma_prezent = 0 AND v_mod_plata = 'integral' AND :new.suma_platita < v_suma_total THEN
+        dbms_output.put_line('Trebuie platit totalul de '||v_suma_total|| ' lei!');
+        RAISE_APPLICATION_ERROR(-20007, 'Nu se poate achita in rate aceasta factura!');
+    END IF;
+END;
+/
+DROP SEQUENCE seq_tip_bilet;
+CREATE SEQUENCE seq_tip_bilet
+START WITH 600
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE tip_bilet(
+    tip_bilet_id NUMBER PRIMARY KEY,
+    pret NUMBER NOT NULL,
+    eveniment_id NUMBER NOT NULL,
+    categorie_id NUMBER NOT NULL,
+    
+    CONSTRAINT fk_tip_bilet_eveniment
+    FOREIGN KEY(eveniment_id) REFERENCES eveniment(eveniment_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_tip_bilet_categorie
+    FOREIGN KEY(categorie_id) REFERENCES categorie(categorie_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_tip_bilet
+BEFORE INSERT ON tip_bilet
+FOR EACH ROW
+BEGIN
+    IF :new.tip_bilet_id IS NULL THEN
+        SELECT seq_tip_bilet.NEXTVAL INTO :new.tip_bilet_id
+        FROM dual;
+    END IF;
+END;
+/
+DROP SEQUENCE seq_bilet;
+CREATE SEQUENCE seq_bilet
+START WITH 700
+INCREMENT BY 1
+NOCYCLE;
+ALTER TABLE bilet
+DROP CONSTRAINT fk_bilet_utilizator;
+
+ALTER TABLE bilet
+DROP COLUMN utilizator_id;
+
+CREATE TABLE bilet(
+    bilet_id NUMBER PRIMARY KEY,
+    discount NUMBER,
+    utilizator_id NUMBER NOT NULL,
+    tip_bilet_id NUMBER NOT NULL,
+    factura_id NUMBER NOT NULL,
+    
+    CONSTRAINT fk_bilet_utilizator
+    FOREIGN KEY(utilizator_id) REFERENCES client(utilizator_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_bilet_tip_bilet
+    FOREIGN KEY(tip_bilet_id) REFERENCES tip_bilet(tip_bilet_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_bilet_factura
+    FOREIGN KEY(factura_id) REFERENCES factura(factura_id)
+    ON DELETE CASCADE
+);
+
+CREATE OR REPLACE TRIGGER trig_bilet
+BEFORE INSERT ON bilet
+FOR EACH ROW
+BEGIN
+    IF :new.bilet_id IS NULL THEN
+        SELECT seq_bilet.NEXTVAL INTO :new.bilet_id
+        FROM dual;
+    END IF;
+END;
+/
+
+CREATE SEQUENCE seq_program
+START WITH 800
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE TABLE program(
+    eveniment_id NUMBER NOT NULL,
+    artist_id NUMBER NOT NULL,
+    ora_inceput DATE NOT NULL,
+    ora_final DATE NOT NULL,
+    CONSTRAINT pk_program
+    PRIMARY KEY(eveniment_id, artist_id),
+    
+    CONSTRAINT fk_program_eveniment
+    FOREIGN KEY(eveniment_id) REFERENCES eveniment(eveniment_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_program_artist
+    FOREIGN KEY(artist_id) REFERENCES artist(artist_id)
+    ON DELETE CASCADE
+);
+CREATE OR REPLACE TRIGGER trig_program
+BEFORE INSERT OR UPDATE ON program
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM program p
+    WHERE p.artist_id = :new.artist_id
+    AND (:old.artist_id IS NULL OR p.eveniment_id <> :old.eveniment_id)
+    AND :new.ora_inceput < ora_final
+    AND :new.ora_final > ora_inceput;
+    
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20009,'Artistul participa la alt eveniment deja');
+    END IF;
+END;
+/
+
+CREATE TABLE sponsorizare(
+    eveniment_id NUMBER NOT NULL,
+    produs_id NUMBER NOT NULL,
+    sponsor_id NUMBER NOT NULL,
+    nr_produse NUMBER,
+    vizibilitate VARCHAR2(100),
+    
+    CONSTRAINT pk_even_sponsor_produs
+    PRIMARY KEY(eveniment_id, produs_id, sponsor_id),
+    
+    CONSTRAINT fk_sponsorizare_eveniment
+    FOREIGN KEY(eveniment_id) REFERENCES eveniment(eveniment_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_sponsorizare_sponsor
+    FOREIGN KEY(sponsor_id) REFERENCES sponsor(sponsor_id)
+    ON DELETE CASCADE,
+    
+    CONSTRAINT fk_sponsorizare_produs
+    FOREIGN KEY(produs_id) REFERENCES produs(produs_id)
+    ON DELETE CASCADE
+);
+
+
+--Exercitiul 5
+INSERT INTO utilizator(nume, prenume, email) VALUES('Pupaza', 'Claudia Andreea', 'clau1204e@yahoo.ro');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 7);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Ciuche', 'Claudiu-Petrisor', 'pcpetrisor25@gmail.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 12);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Leonte', 'Gabriela', 'gaby@yahoo.ro');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 2);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Andrie?', 'Ingrid', 'ingrid@yahoo.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 9);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Andries', 'Maria Mihaela', 'myhaella@gmail.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 6);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Grigore', 'Irina', 'irinayry@outlook.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 7);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Bâcauanu', 'Monica', 'monibaca@yahoo.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 8);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Antoche', 'Erick', 'ericerick78@gmail.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 1);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Bere?teanu', 'Vlad Andrei', 'vladbere@gmail.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 4);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Burlacu', 'Anca', 'burli@yahoo.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 3);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Burghelea', 'Andra', 'andra_2449burghelea@yahoo.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 2);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Boboc', 'Cristiana', 'bobi_cristi@gmail.com');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 11);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Munteanu', 'Ioana', 'ioanamya_38@yahoo.ro');
+INSERT INTO organizator(utilizator_id, ani_experienta) VALUES (seq_utilizator.CURRVAL, 17);
+
+SELECT value
+FROM nls_session_parameters
+WHERE parameter = 'NLS_DATE_FORMAT';
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Apostu', 'Melania', 'melonmel@outlook.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare, ocupatie) VALUES(seq_utilizator.CURRVAL, '12-APR-2000', SYSDATE, 'Student');
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Chirila', 'Rares', 'rares_ch@yahoo.ro');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare) VALUES(seq_utilizator.CURRVAL, '08-FEB-1989', SYSDATE);
+
+INSERT INTO utilizator(nume, prenume, email)VALUES('Radu', 'Cristian', 'cristian.radu@gmail.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare, ocupatie) VALUES(seq_utilizator.CURRVAL, '05-JUN-1996', SYSDATE, 'Inginer');
+
+INSERT INTO utilizator(nume, prenume, email)VALUES('Neagu', 'Bianca', 'bianca.neagu@yahoo.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare, ocupatie) VALUES(seq_utilizator.CURRVAL, '19-AUG-1999', SYSDATE, 'Economist');
+
+INSERT INTO utilizator(nume, prenume, email)VALUES('Toma', 'Alexandru', 'alex.toma853@outlook.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare, ocupatie) VALUES(seq_utilizator.CURRVAL, '27-FEB-1985', SYSDATE, 'Programator');
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Popescu', 'Ana', 'ana.popescu@gmail.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare) VALUES(seq_utilizator.CURRVAL, '15-MAR-1995', SYSDATE);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Ionescu', 'Mihai', 'mihai.ionescu@yahoo.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare) VALUES(seq_utilizator.CURRVAL, '22-JUL-1987', SYSDATE);
+
+INSERT INTO utilizator(nume, prenume, email) VALUES('Dumitru', 'Elena', 'elena.dumitru@gmail.com');
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare) VALUES(seq_utilizator.CURRVAL, '03-NOV-1992', SYSDATE);
+
+INSERT INTO oras(nume) VALUES ('Bucuresti');
+INSERT INTO oras(nume) VALUES ('Cluj-Napoca');
+INSERT INTO oras(nume) VALUES ('Timisoara');
+INSERT INTO oras(nume) VALUES ('Iasi');
+INSERT INTO oras(nume) VALUES ('Brasov');
+INSERT INTO oras(nume) VALUES ('Sibiu');
+INSERT INTO oras(nume) VALUES ('Oradea');
+INSERT INTO oras(nume) VALUES ('Arad');
+INSERT INTO oras(nume) VALUES ('Craiova');
+INSERT INTO oras(nume) VALUES ('Galati');
+
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Arena Nationala', 'Bd. Basarabia nr. 37', 55000, 100);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Cluj Arena', 'Aleea Stadionului nr. 2', 30000, 101);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Sala Polivalenta', 'Str. Dragalina nr. 40', 10000, 101);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Filarmonica Banatul', 'Bd. C.D. Loga nr. 2', 1200, 102);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Teatrul National Iasi', 'Str. Agatha Barsescu nr. 18', 900, 103);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Sala Palatului', 'Str. Ion Campineanu nr. 28', 4000, 100);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Opera Nationala Romana', 'Bd. Mihail Kogalniceanu nr. 70', 3500, 100);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Sala Sporturilor', 'Str. Primaverii nr. 8', 5000, 108);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Casa de Cultura a Studentilor', 'Str. Emil Isac nr. 46', 2500, 101);
+INSERT INTO locatie(nume, adresa, capacitate, oras_id) VALUES('Teatrul Dramatic', 'Str. Mihai Eminescu nr. 4', 800, 105);
+
+INSERT INTO artist(nume, nume_scena, email) VALUES('Elena Apostoleanu', 'Inna', 'inna@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Andreea B?nic?', NULL, 'andreea.banica@gmail.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Paula Seling', NULL, 'paula.seling@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Loredana Groza', 'Loredana', 'loredana@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Constantin Ionita', 'Costi Ionita', 'costi.ionita@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Corina Bud', 'Corina', 'corina@gmail.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Andrei Tiberiu Maria', 'Smiley', 'smiley@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Delia Matache', 'Delia', 'delia@gmail.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Robin and the Backstabbers', NULL, 'contact@robinandthebackstabbers.ro');
+INSERT INTO artist(nume, nume_scena, email) VALUES('E-AN-NA', NULL, 'contact@eanna.ro');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Bosquito', NULL, 'contact@bosquito.ro');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Holograf', NULL, 'contact@holograf.ro');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Adrian Maxim', 'Magician Adrian', 'adrian.maxim@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Cirque du Romania', NULL, 'contact@cirqueduromania.ro');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Trupa Acrobatica', NULL, 'acrobatica@gmail.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Costel Bojog', NULL, 'costel.bojog@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Aurelian Temi?an', NULL, 'aurelian.temisan@gmail.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Cosmin Nedelcu', 'Micutzu', 'micutzu@contact.com');
+INSERT INTO artist(nume, nume_scena, email) VALUES('Dan Badea', NULL, 'dan.badea@contact.com');
+
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Kaufland', '0212345678', 'contact@kaufland.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Coca-Cola', '0213456789', 'contact@coca-cola.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Orange', '0214567890', 'contact@orange.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Vodafone', '0215678901', 'contact@vodafone.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('BRD', '0216789012', 'contact@brd.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('ING', '0217890123', 'contact@ing.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('PepsiCo', '0218901234', 'contact@pepsico.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('BCR', '0219012345', 'contact@bcr.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Nike', '0211122334', 'contact@nike.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Adidas', '0212233445', 'contact@adidas.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('Decathlon', '0213344556', 'contact@decathlon.ro');
+INSERT INTO sponsor(nume, numar_telefon, email) VALUES('CopyPrinx', '0213944556', 'contact@copyprinx.ro');
+
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Concert Rock Legends', '21-APR-2025', 'Concert extraordinar cu trupe rock legendare din Romania, recitaluri live si efecte speciale pentru fanii adevarati de rock', 50000, 18, 7, 50);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Maraton Cluj 2025', '15-MAY-2025', 'Maraton anual pentru alergatori amatori si profesionisti, cu trasee prin Cluj, puncte de hidratare si medalii pentru toti participantii', 3000, 0, 12, 51);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Gala Caritabila Bucuresti', '10-JUN-2025', 'Eveniment de strangere de fonduri pentru copii defavorizati, cu licitatii, spectacole live si invitati speciali', 800, 0, 2, 52);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Concert Filarmonica Banatul', '05-JUL-2025', 'Concert de muzica clasica sustinut de Filarmonica Banatul, cu lucrari celebre si soli?ti renumiti', 1200, 0, 9, 53);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Premiera Piesa Amintiri', '20-AUG-2025', 'Premiera piesei dramatice Amintiri la Teatrul National Iasi, cu distributie de renume si regie profesionista', 900, 12, 6, 54);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Concert Pop All Stars', '30-SEP-2025', 'Concert cu cei mai buni cantareti pop din Romania, cu momente speciale de dans, lumini spectaculoase si invitati surpriza', 4000, 12, 7, 55);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Opera Nationala Romana Spectacol', '12-OCT-2025', 'Spectacol de opera cu lucrari celebre, cantareti renumiti si orchestra live la Opera Nationala Romana', 3500, 12, 8, 56);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Campionat Baschet Sala Sporturilor', '18-NOV-2025', 'Campionat national de baschet cu echipe profesioniste si spectatori pasionati la Sala Sporturilor', 5000, 6, 1, 57);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Festival Studentesc Casa de Cultura', '25-NOV-2025', 'Festival de muzica, teatru si dans pentru studenti la Casa de Cultura a Studentilor, cu activitati interactive si premii', 2500, 0, 4, 58);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Premiera Teatru Dramatic', '10-DEC-2025', 'Premiera piesei dramatice la Teatrul Dramatic, cu actori locali si regie moderna', 800, 12, 3, 59);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Concert Jazz Night', '05-JAN-2026', 'Seara de jazz cu trupe locale si invitati internationali, atmosfera relaxanta si muzica live de calitate', 2000, 12, 5, 53);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Festival Street Food', '12-FEB-2026', 'Festival cu preparate gastronomice diverse, muzica live si activitati pentru copii, intr-un spatiu deschis in Cluj Arena', 10000, 0, 2, 51);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Concert Symphonic Orchestra', '20-FEB-2026', 'Concert simfonic cu orchestra de renume si solisti internationali, prezentat la Sala Palatului', 4000, 12, 6, 55);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Teatru Comedie', '28-FEB-2026', 'Spectacol de comedie cu actori cunoscuti, piese amuzante si interactivitate cu publicul la Teatrul National Iasi', 900, 12, 6, 54);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Concert Rock Underground', '15-MAR-2026', 'Concert cu trupe rock underground din Romania, energie si muzica live, sustinut la Arena Nationala', 15000, 16, 7, 50);
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id) VALUES('Festival Arte si Cultura', '25-MAR-2026', 'Festival dedicat artelor si culturii locale, cu expozitii, teatru, muzica si ateliere interactive, la Casa de Cultura a Studentilor', 2500, 0, 4, 58);
+
+INSERT INTO produs(nume, descriere, valoare) VALUES('Baton', 'Baton de cereale', 3.5);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Sticla apa', 'Apa imbuteliata 0.5L', 3);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Sticla suc', 'Suc natural 0.5L', 4.5);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Sandwich', 'Sandwich simplu cu paine si umplutura', 7.5);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Covrig', 'Covrig sarat sau dulce', 2.5);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Fruct', 'Mar sau banana proaspata', 1);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Napolitana', 'Napolitana cu ciocolata si alune', 4);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Cafea', 'Cafea espresso 300mL', 8.5);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Tricou', 'Tricou generic eveniment', 25);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Pahar', 'Pahar din plastic cu logo', 5);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Pahar', 'Pahar din sticla cu logo', 10);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Sacosa', 'Sacosa textila reutilizabila', 7);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Banner', 'Banner publicitar 2x1m, din material rezistent', 170);
+INSERT INTO produs(nume, descriere, valoare) VALUES('Poster', 'Poster 1x0.5m', 35);
+INSERT INTO sponsorizare VALUES (401, 300, 200, 500, 'Pe scena si in zona de intrare');
+INSERT INTO sponsorizare VALUES (401, 308, 208, 100, 'Merch oficial pe scena');
+INSERT INTO sponsorizare VALUES (401, 312, 209, 5, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (402, 301, 200, 1000, 'Puncte de hidratare');
+INSERT INTO sponsorizare VALUES (402, 302, 206, 500, 'Puncte de hidratare');
+INSERT INTO sponsorizare VALUES (402, 308, 210, 200, 'Tricouri oficiale participanti');
+INSERT INTO sponsorizare VALUES (402, 312, 205, 3, 'Banner principal');
+INSERT INTO sponsorizare VALUES (403, 312, 204, 3, 'Banner principal');
+INSERT INTO sponsorizare VALUES (403, 311, 205, 100, 'Sacose cadou pentru invitati');
+INSERT INTO sponsorizare VALUES (403, 307, 201, 200, 'Coffee corner');
+INSERT INTO sponsorizare VALUES (404, 310, 201, 50, 'Pahare cu logo pentru VIP');
+INSERT INTO sponsorizare VALUES (404, 308, 200, 30, 'Tricouri pentru voluntari');
+INSERT INTO sponsorizare VALUES (404, 312, 204, 2, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (405, 311, 210, 50, 'Sacose cu materiale promo');
+INSERT INTO sponsorizare VALUES (405, 313, 203, 5, 'Poster la intrare');
+INSERT INTO sponsorizare VALUES (405, 307, 201, 100, 'Coffee break');
+INSERT INTO sponsorizare VALUES (405, 313, 211, 5, 'Poster langa scena');
+INSERT INTO sponsorizare VALUES (406, 300, 206, 300, 'Batoane pentru fani');
+INSERT INTO sponsorizare VALUES (406, 308, 208, 100, 'Tricouri oficiale');
+INSERT INTO sponsorizare VALUES (406, 312, 209, 3, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (406, 302, 206, 300, 'Sucuri gratis la stand');
+INSERT INTO sponsorizare VALUES (407, 310, 205, 50, 'Pahare sticla VIP');
+INSERT INTO sponsorizare VALUES (407, 312, 204, 2, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (407, 311, 210, 30, 'Sacose pentru invitati');
+INSERT INTO sponsorizare VALUES (407, 310, 208, 50, 'Pahare sticla VIP');
+INSERT INTO sponsorizare VALUES (408, 301, 200, 500, 'Puncte de hidratare');
+INSERT INTO sponsorizare VALUES (408, 308, 208, 50, 'Tricouri echipe');
+INSERT INTO sponsorizare VALUES (408, 312, 209, 3, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (409, 303, 200, 200, 'Sandwich-uri pentru participanti');
+INSERT INTO sponsorizare VALUES (409, 307, 201, 150, 'Coffee break');
+INSERT INTO sponsorizare VALUES (409, 311, 210, 50, 'Sacose cadou');
+INSERT INTO sponsorizare VALUES (410, 313, 203, 5, 'Poster la intrare');
+INSERT INTO sponsorizare VALUES (410, 307, 201, 100, 'Coffee break');
+INSERT INTO sponsorizare VALUES (410, 311, 210, 30, 'Sacose cadou');
+INSERT INTO sponsorizare VALUES (410, 313, 211, 5, 'Poster la intrare');
+INSERT INTO sponsorizare VALUES (411, 308, 208, 50, 'Tricouri oficiale');
+INSERT INTO sponsorizare VALUES (411, 312, 209, 3, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (411, 307, 201, 100, 'Coffee break');
+INSERT INTO sponsorizare VALUES (412, 303, 200, 500, 'Sandwich-uri');
+INSERT INTO sponsorizare VALUES (412, 304, 206, 400, 'Covrigi');
+INSERT INTO sponsorizare VALUES (412, 302, 201, 300, 'Sucuri');
+INSERT INTO sponsorizare VALUES (413, 310, 205, 50, 'Pahare VIP');
+INSERT INTO sponsorizare VALUES (413, 312, 204, 3, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (414, 313, 203, 5, 'Poster la intrare');
+INSERT INTO sponsorizare VALUES (414, 307, 201, 50, 'Coffee break');
+INSERT INTO sponsorizare VALUES (415, 300, 206, 400, 'Batoane pentru fani');
+INSERT INTO sponsorizare VALUES (415, 308, 211, 100, 'Tricouri oficiale');
+INSERT INTO sponsorizare VALUES (415, 312, 211, 3, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (416, 311, 210, 50, 'Sacose cadou');
+INSERT INTO sponsorizare VALUES (416, 312, 204, 3, 'Banner la intrare');
+INSERT INTO sponsorizare VALUES (416, 312, 203, 5, 'Poster la intrare');
+
+INSERT INTO categorie (nume, descriere) VALUES ('VIP', 'Loc premium, acces la facilitati speciale, lounge si beneficii suplimentare');
+INSERT INTO categorie (nume, descriere) VALUES ('Front Row', 'Locuri in primele randuri, vizibilitate excelenta');
+INSERT INTO categorie (nume, descriere) VALUES ('General Acces', 'Loc general cu vizibilitate buna, acces la toate zonele publice');
+INSERT INTO categorie (nume, descriere) VALUES ('Balcon', 'Locuri pe balcon sau tribune cu vizibilitate buna');
+INSERT INTO categorie (nume, descriere) VALUES ('Standing', 'Zona in picioare, acces liber, vizibilitate variabila');
+INSERT INTO categorie (nume, descriere) VALUES ('Early Bird', 'Bilet achizitionat in avans, la pret redus');
+INSERT INTO categorie (nume, descriere) VALUES ('Student', 'Bilet cu reducere speciala pentru studenti');
+INSERT INTO categorie (nume, descriere) VALUES ('Family', 'Bilet pentru grup/familie, 2 adulti + 2 copii');
+INSERT INTO categorie (nume, descriere) VALUES ('10 km', 'Participare la traseu scurt de 10 km, cu facilitati incluse');
+INSERT INTO categorie (nume, descriere) VALUES ('21 km', 'Participare la semimaraton de 21 km, cu pachet complet si medalii');
+INSERT INTO categorie (nume, descriere) VALUES ('42 km', 'Participare la maraton complet, cu pachet complet, tricou si medalii');
+INSERT INTO categorie (nume, descriere) VALUES ('Tribuna', 'Locuri in tribune, vizibilitate buna pentru competitii sportive');
+
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (600, 401, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (400, 401, 451);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (300, 401, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 401, 453);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (250, 401, 454);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (120, 402, 458);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (180, 402, 459);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 402, 460);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (400, 403, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (250, 403, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (300, 403, 451);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (450, 404, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 404, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (250, 404, 453);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (300, 405, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 405, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (500, 406, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (350, 406, 451);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (250, 406, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 406, 454);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (600, 407, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (350, 407, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (300, 407, 453);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (400, 408, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (150, 408, 461);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (100, 408, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (50, 409, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (120, 409, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (300, 410, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 410, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (400, 411, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 411, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (220, 411, 453);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (50, 412, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (30, 412, 457);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (500, 413, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (250, 413, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (300, 413, 453);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (200, 414, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (400, 415, 450);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (150, 415, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (120, 415, 454);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (50, 416, 452);
+INSERT INTO tip_bilet (pret, eveniment_id, categorie_id) VALUES (30, 416, 457);
+
+INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id) VALUES('13-MAR-2025', 900, 'integral', 19);
+INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id) VALUES('20-DEC-2024', 360, 'integral', 18);
+INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id) VALUES('30-MAY-2025', 600, 'rate', 18);
+INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id) VALUES('06-NOV-2025', 30, 'integral', 16);
+INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id) VALUES('03-JAN-2025', 1200, 'integral', 16);
+INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id) VALUES('28-FEB-2025', 120, 'integral', 15);
+UPDATE factura
+SET suma_totala = 1500
+WHERE factura_id=1200;
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 600, 1200);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 602, 1200);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 602, 1200);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 602, 1200);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 606, 1201);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 606, 1201);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 622, 1202);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 622, 1202);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 634, 1203);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 620, 1204);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 620, 1204);
+INSERT INTO bilet(discount, tip_bilet_id, factura_id) VALUES(0, 605, 1205);
+
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('card', DATE '2025-03-14', 1500, 1200);
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('cash', DATE '2024-12-21', 360, 1201);
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('card', DATE '2025-06-01', 200, 1202);
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('cash', DATE '2025-07-01', 200, 1202);
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('card', DATE '2025-08-01', 200, 1202);
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('card', DATE '2025-01-10', 500, 1204);
+INSERT INTO plata (tip_plata, data, suma_platita, factura_id) VALUES ('cash', DATE '2025-02-10', 300, 1204);
+
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (19, 401, 5, 'Super concert!');
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (18, 407, 4, 'Foarte interesant.');
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (18, 402, 3, 'A fost ok.');
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (16, 412, 5, 'Foarte bine organizat!');
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (16, 407, 4, 'Mi-a placut atmosfera.');
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (15, 402, 2, 'Nu a fost ce ma asteptam.');
+INSERT INTO recenzie(utilizator_id, eveniment_id, rating, comentariu) VALUES (19, 401, 3, 'Bun, dar cam aglomerat.');
+
+UPDATE factura
+SET mod_plata = 'rate'
+WHERE factura_id = 1204;
+
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final, descriere)
+VALUES (401, 160, TO_DATE('21-APR-2025 20:00', 'DD-MON-YYYY HH24:MI'),TO_DATE('21-APR-2025 21:10', 'DD-MON-YYYY HH24:MI'), 'Concert rock clasic – Holograf');
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final, descriere)
+VALUES (401, 159, TO_DATE('21-APR-2025 21:15', 'DD-MON-YYYY HH24:MI'),TO_DATE('21-APR-2025 22:30', 'DD-MON-YYYY HH24:MI'), 'Invitat special – Bosquito');
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final, descriere)
+VALUES (401, 158, TO_DATE('21-APR-2025 18:45', 'DD-MON-YYYY HH24:MI'),TO_DATE('21-APR-2025 19:50', 'DD-MON-YYYY HH24:MI'), 'Concert rock folcloric - E-AN-NA');
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (402, 150, TO_DATE('15-MAY-25 08:00','DD-MON-YY HH24:MI'), TO_DATE('15-MAY-25 12:00','DD-MON-YY HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (402, 151, TO_DATE('12:30','HH24:MI'), TO_DATE('16:00','HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (403, 152, TO_DATE('10-JUN-25 18:00','DD-MON-YY HH24:MI'), TO_DATE('10-JUN-25 20:00','DD-MON-YY HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (403, 153, TO_DATE('10-JUN-25 20:30','DD-MON-YY HH24:MI'), TO_DATE('10-JUN-25 22:30','DD-MON-YY HH24:MI'));
+INSERT INTO program (program_id, eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (1005, 404, 154, TO_DATE('05-JUL-25 19:00','DD-MON-YY HH24:MI'), TO_DATE('05-JUL-25 21:00','DD-MON-YY HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (405, 155, TO_DATE('20-AUG-25 18:00','DD-MON-YY HH24:MI'), TO_DATE('20-AUG-25 20:00','DD-MON-YY HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (406, 156, TO_DATE('30-SEP-25 20:00','DD-MON-YY HH24:MI'), TO_DATE('30-SEP-25 22:00','DD-MON-YY HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (407, 157, TO_DATE('12-OCT-25 19:30','DD-MON-YY HH24:MI'), TO_DATE('12-OCT-25 22:00','DD-MON-YY HH24:MI'));
+INSERT INTO program (eveniment_id, artist_id, ora_inceput, ora_final)
+VALUES (412, 158, TO_DATE('12-FEB-26 10:00','DD-MON-YY HH24:MI'), TO_DATE('12-FEB-26 22:00','DD-MON-YY HH24:MI'));
+
+ALTER TABLE program
+ADD descriere VARCHAR2(200);
+
+-- Exercitiul 6
+-- toate tipurile de colectii
+
+CREATE OR REPLACE PROCEDURE ex6_evenimente(an IN NUMBER)
+IS
+    TYPE rec_categorii IS RECORD(
+        nume categorie.nume%TYPE,
+        nr_bilete NUMBER);
+    TYPE tablou_categorii IS TABLE OF rec_categorii;
+
+    TYPE rec_utilizator IS RECORD(
+        utilizator_id utilizator.utilizator_id%TYPE,
+        nume_prenume VARCHAR2(100),
+        categorii tablou_categorii);
+    TYPE tablou_utilizatori IS TABLE OF rec_utilizator INDEX BY PLS_INTEGER;
+
+    TYPE rec_evenimente IS RECORD(
+        eveniment_id eveniment.eveniment_id%TYPE,
+        titlu eveniment.titlu%TYPE,
+        data_eveniment eveniment.data%TYPE,
+        nr_total_bilete NUMBER,
+        utilizatori tablou_utilizatori);
+    TYPE tablou_evenimente IS TABLE OF rec_evenimente INDEX BY PLS_INTEGER;
+
+    TYPE total_bilete_lunar IS VARRAY(12) OF NUMBER;
+
+    categorii tablou_categorii;
+    utilizatori tablou_utilizatori;
+    evenimente tablou_evenimente;
+    vector_bilete total_bilete_lunar :=
+        total_bilete_lunar(0,0,0,0,0,0,0,0,0,0,0,0);
+
+    eveniment_id_index PLS_INTEGER;
+    utilizator_id_index PLS_INTEGER;
+    nr_bilete_eveniment NUMBER;
+    luna NUMBER;
+    exista_evenimente BOOLEAN := FALSE;
+
+    CURSOR cursor_evenimente IS
+        SELECT e.eveniment_id, e.titlu, e.data
+        FROM eveniment e
+        WHERE EXTRACT(YEAR FROM e.data) = an
+        ORDER BY e.data;
+
+    CURSOR cursor_utilizatori(c_eveniment_id NUMBER) IS
+        SELECT DISTINCT u.utilizator_id, u.nume || ' ' || u.prenume AS nume_client
+        FROM utilizator u
+        JOIN factura f ON u.utilizator_id = f.utilizator_id
+        JOIN bilet b ON f.factura_id = b.factura_id
+        JOIN tip_bilet tb ON b.tip_bilet_id = tb.tip_bilet_id
+        WHERE tb.eveniment_id = c_eveniment_id
+        ORDER BY u.utilizator_id;
+
+BEGIN
+    FOR eveniment IN cursor_evenimente LOOP
+        exista_evenimente := TRUE;
+        nr_bilete_eveniment := 0;
+        utilizatori.DELETE;
+
+        FOR utilizator IN cursor_utilizatori(eveniment.eveniment_id) LOOP
+            categorii := tablou_categorii();
+
+            SELECT c.nume, COUNT(*)
+            BULK COLLECT INTO categorii
+            FROM categorie c
+            JOIN tip_bilet tb ON c.categorie_id = tb.categorie_id
+            JOIN bilet b ON tb.tip_bilet_id = b.tip_bilet_id
+            JOIN factura f ON b.factura_id = f.factura_id
+            WHERE tb.eveniment_id = eveniment.eveniment_id
+            AND f.utilizator_id = utilizator.utilizator_id
+            GROUP BY c.nume
+            ORDER BY c.nume;
+
+            utilizatori(utilizator.utilizator_id).utilizator_id := utilizator.utilizator_id;
+            utilizatori(utilizator.utilizator_id).nume_prenume := utilizator.nume_client;
+            utilizatori(utilizator.utilizator_id).categorii := categorii;
+
+            FOR i IN 1..categorii.COUNT LOOP
+                nr_bilete_eveniment := nr_bilete_eveniment + categorii(i).nr_bilete;
+            END LOOP;
+        END LOOP;
+
+        evenimente(eveniment.eveniment_id).eveniment_id := eveniment.eveniment_id;
+        evenimente(eveniment.eveniment_id).titlu := eveniment.titlu;
+        evenimente(eveniment.eveniment_id).data_eveniment := eveniment.data;
+        evenimente(eveniment.eveniment_id).nr_total_bilete := nr_bilete_eveniment;
+        evenimente(eveniment.eveniment_id).utilizatori := utilizatori;
+        
+        luna := EXTRACT(MONTH FROM eveniment.data);
+        vector_bilete(luna) := vector_bilete(luna) + nr_bilete_eveniment;
+    END LOOP;
+
+    IF NOT exista_evenimente THEN
+        dbms_output.put_line('Nu exista evenimente in anul ' || an || '!');
+        RETURN;
+    END IF;
+
+    eveniment_id_index := evenimente.FIRST;
+
+    WHILE eveniment_id_index IS NOT NULL LOOP
+        dbms_output.put_line('Eveniment: ' || evenimente(eveniment_id_index).titlu);
+
+        dbms_output.put_line('Data: ' || TO_CHAR(evenimente(eveniment_id_index).data_eveniment,
+                    'DD-MM-YYYY'));
+
+        utilizatori := evenimente(eveniment_id_index).utilizatori;
+        utilizator_id_index := utilizatori.FIRST;
+
+        IF utilizator_id_index IS NULL THEN
+            dbms_output.put_line('Nu exista bilete vandute pentru acest eveniment.');
+        END IF;
+
+        WHILE utilizator_id_index IS NOT NULL LOOP
+            dbms_output.put_line('ID: ' || utilizatori(utilizator_id_index).utilizator_id ||
+                ' Nume: ' || utilizatori(utilizator_id_index).nume_prenume);
+
+            categorii := utilizatori(utilizator_id_index).categorii;
+
+            FOR i IN 1..categorii.COUNT LOOP
+                dbms_output.put_line('Categoria: ' || categorii(i).nume || ', numar de bilete: ' ||categorii(i).nr_bilete);
+            END LOOP;
+
+            utilizator_id_index := utilizatori.NEXT(utilizator_id_index);
+            dbms_output.new_line;
+        END LOOP;
+
+        dbms_output.put_line('Numar total bilete vandute: ' || evenimente(eveniment_id_index).nr_total_bilete);
+        dbms_output.new_line;
+        eveniment_id_index := evenimente.NEXT(eveniment_id_index);
+    END LOOP;
+
+    dbms_output.put_line('Total bilete vandute pe luni:');
+
+    FOR i IN 1..vector_bilete.COUNT LOOP
+        IF vector_bilete(i) > 0 THEN
+            dbms_output.put_line('Luna ' || i || ': ' || vector_bilete(i) || ' bilete');
+        END IF;
+    END LOOP;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    ex6_evenimente(2026);
+END;
+/
+
+BEGIN
+    ex6_evenimente(2025);
+END;
+/
+
+--Exercitiul 7
+-- 2 cursoare
+CREATE OR REPLACE PROCEDURE ex7_evenimente_1(
+    p_organizator_id IN NUMBER, p_detalii IN VARCHAR2)
+IS
+    CURSOR c_evenimente IS
+        SELECT e.eveniment_id, e.titlu, e.data,
+            l.nume AS locatie, o.nume AS oras
+        FROM eveniment e
+        JOIN locatie l ON l.locatie_id = e.locatie_id
+        JOIN oras o ON o.oras_id = l.oras_id
+        WHERE e.organizator_id = p_organizator_id
+        ORDER BY e.data;
+
+    CURSOR c_program(p_eveniment_id eveniment.eveniment_id%TYPE)
+    IS
+        SELECT a.artist_id, a.nume, a.nume_scena, p.ora_inceput, p.ora_final
+        FROM program p
+        JOIN artist a ON a.artist_id = p.artist_id
+        WHERE p.eveniment_id = p_eveniment_id
+        ORDER BY p.ora_inceput;
+        
+    v_cursor SYS_REFCURSOR;
+    v_sql VARCHAR2(4000);
+    v_categorie categorie.nume%TYPE;
+    v_pret tip_bilet.pret%TYPE;
+
+    v_sponsor sponsor.nume%TYPE;
+    v_vizibilitate sponsorizare.vizibilitate%TYPE;
+    v_nr_produse sponsorizare.nr_produse%TYPE;
+
+    v_nume_client utilizator.nume%TYPE;
+    v_prenume_client utilizator.prenume%TYPE;
+    v_rating recenzie.rating%TYPE;
+    v_comentariu recenzie.comentariu%TYPE;
+
+    v_nr_evenimente NUMBER := 0;
+    v_nr_artisti NUMBER;
+    v_nr_detalii NUMBER;
+
+    e_tip_detalii_invalid EXCEPTION;
+BEGIN
+    IF UPPER(p_detalii) NOT IN ('BILETE', 'SPONSORI', 'RECENZII')
+    THEN
+        RAISE e_tip_detalii_invalid;
+    END IF;
+    FOR ev IN c_evenimente LOOP
+        v_nr_evenimente := v_nr_evenimente + 1;
+
+        DBMS_OUTPUT.PUT_LINE('----------');
+        DBMS_OUTPUT.PUT_LINE('Eveniment ID: ' || ev.eveniment_id);
+        DBMS_OUTPUT.PUT_LINE('Titlu: ' || ev.titlu);
+        DBMS_OUTPUT.PUT_LINE('Data: ' ||TO_CHAR(ev.data, 'DD-MM-YYYY'));
+        DBMS_OUTPUT.PUT_LINE('Locatie: ' ||ev.locatie || ', ' || ev.oras);
+        DBMS_OUTPUT.PUT_LINE('--- Program artisti: ---');
+        
+        v_nr_artisti := 0;
+        FOR pr IN c_program(ev.eveniment_id) LOOP
+            v_nr_artisti := v_nr_artisti + 1;
+            DBMS_OUTPUT.PUT_LINE('Artist ID: ' ||pr.artist_id);
+
+            IF pr.nume_scena IS NOT NULL THEN
+                DBMS_OUTPUT.PUT_LINE('Artist: ' ||pr.nume ||' (' ||pr.nume_scena ||')');
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('Artist: ' ||pr.nume);
+            END IF;
+
+            DBMS_OUTPUT.PUT_LINE('Interval: ' || TO_CHAR(pr.ora_inceput,'DD-MM-YYYY HH24:MI')
+                || ' - ' || TO_CHAR(pr.ora_final,'DD-MM-YYYY HH24:MI'));
+        END LOOP;
+        IF v_nr_artisti = 0 THEN
+            DBMS_OUTPUT.PUT_LINE('Evenimentul nu are artisti in program.');
+        END IF;
+
+        DBMS_OUTPUT.PUT_LINE('--- Detalii cerute: ---');
+        v_nr_detalii := 0;
+        IF UPPER(p_detalii) = 'BILETE' THEN
+            v_sql :=
+                'SELECT c.nume, tb.pret
+                 FROM tip_bilet tb
+                 JOIN categorie c ON c.categorie_id = tb.categorie_id
+                 WHERE tb.eveniment_id = :id_eveniment
+                 ORDER BY tb.pret DESC';
+            OPEN v_cursor FOR v_sql
+            USING ev.eveniment_id;
+            LOOP
+                FETCH v_cursor
+                INTO v_categorie, v_pret;
+                EXIT WHEN v_cursor%NOTFOUND;
+
+                v_nr_detalii := v_nr_detalii + 1;
+                DBMS_OUTPUT.PUT_LINE( 'Categorie: ' || v_categorie || ', Pret: ' || v_pret || ' lei');
+            END LOOP;
+            CLOSE v_cursor;
+
+        ELSIF UPPER(p_detalii) = 'SPONSORI' THEN
+            v_sql :=
+                'SELECT s.nume, sp.vizibilitate, sp.nr_produse
+                 FROM sponsorizare sp
+                 JOIN sponsor s ON s.sponsor_id = sp.sponsor_id
+                 WHERE sp.eveniment_id = :id_eveniment
+                 ORDER BY s.nume';
+            OPEN v_cursor FOR v_sql
+            USING ev.eveniment_id;
+            LOOP
+                FETCH v_cursor
+                INTO v_sponsor, v_vizibilitate, v_nr_produse;
+                EXIT WHEN v_cursor%NOTFOUND;
+                
+                v_nr_detalii := v_nr_detalii + 1;
+                DBMS_OUTPUT.PUT_LINE( 'Sponsor: ' || v_sponsor);
+                DBMS_OUTPUT.PUT_LINE( 'Vizibilitate: ' || v_vizibilitate);
+                DBMS_OUTPUT.PUT_LINE( 'Numar produse: ' || NVL(v_nr_produse, 0));
+            END LOOP;
+            CLOSE v_cursor;
+            
+        ELSIF UPPER(p_detalii) = 'RECENZII' THEN
+            v_sql :=
+                'SELECT u.nume, u.prenume, r.rating, r.comentariu
+                 FROM recenzie r
+                 JOIN utilizator u ON u.utilizator_id = r.utilizator_id
+                 WHERE r.eveniment_id = :id_eveniment
+                 ORDER BY r.rating DESC';
+            OPEN v_cursor FOR v_sql
+            USING ev.eveniment_id;
+            LOOP
+                FETCH v_cursor
+                INTO v_nume_client, v_prenume_client, v_rating, v_comentariu;
+                EXIT WHEN v_cursor%NOTFOUND;
+                
+                v_nr_detalii := v_nr_detalii + 1;
+                DBMS_OUTPUT.PUT_LINE('Client: ' || v_nume_client || ' ' || v_prenume_client);
+                DBMS_OUTPUT.PUT_LINE('Rating: ' || v_rating || '/5');
+                DBMS_OUTPUT.PUT_LINE('Comentariu: ' || NVL(v_comentariu, 'Fara comentariu'));
+            END LOOP;
+            CLOSE v_cursor;
+        END IF;
+        
+        IF v_nr_detalii = 0 THEN
+            DBMS_OUTPUT.PUT_LINE('Nu exista informatii de tip '|| UPPER(p_detalii)|| ' pentru acest eveniment');
+        END IF;
+
+        DBMS_OUTPUT.PUT_LINE('----------');
+    END LOOP;
+    
+    IF v_nr_evenimente = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Organizatorul cu ID ' || p_organizator_id || ' nu are evenimente');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE( 'Numar total de evenimente gasite: ' || v_nr_evenimente);
+    END IF;
+EXCEPTION
+    WHEN e_tip_detalii_invalid THEN
+        DBMS_OUTPUT.PUT_LINE('Tip de detalii invalid');
+        DBMS_OUTPUT.PUT_LINE('Valorile permise sunt: BILETE, SPONSORI sau RECENZII');
+    WHEN OTHERS THEN
+        IF v_cursor%ISOPEN THEN
+            CLOSE v_cursor;
+        END IF;
+        DBMS_OUTPUT.PUT_LINE('A aparut o eroare: ' || SQLERRM);
+
+END ex7_evenimente_1;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    ex7_evenimente_1(p_organizator_id => 7, p_detalii => 'BILETE');
+END;
+/
+
+BEGIN
+    ex7_evenimente_1(p_organizator_id => 7, p_detalii => 'SPONSORI');
+END;
+/
+
+BEGIN
+    ex7_evenimente_1(p_organizator_id => 7, p_detalii => 'RECENZII');
+END;
+/
+
+BEGIN
+    ex7_evenimente_1(p_organizator_id => 7,p_detalii => 'ARTISTI');
+END;
+/
+
+-- Exercitiul 8
+-- NO_DATA_FOUND si TOO_MANY_ROWS
+
+CREATE OR REPLACE FUNCTION ex8_status_factura (p_nume utilizator.nume%TYPE, p_prenume utilizator.prenume%TYPE, p_data_factura factura.data%TYPE) 
+RETURN VARCHAR2
+IS
+    v_status VARCHAR2(200);
+BEGIN
+    IF p_nume IS NULL OR p_prenume IS NULL OR p_data_factura IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20080, 'Nume, prenume, data nu pot fi null');
+    END IF;
+
+    SELECT
+        CASE
+            WHEN NVL(SUM(p.suma_platita), 0) >= f.suma_totala THEN
+                'ACHITATA'
+            ELSE
+                'RESTANTA: ' || TO_CHAR(f.suma_totala - NVL(SUM(p.suma_platita), 0))
+        END
+    INTO v_status
+    FROM utilizator u
+    JOIN factura f ON f.utilizator_id = u.utilizator_id
+    LEFT JOIN plata p ON p.factura_id = f.factura_id
+    WHERE UPPER(u.nume) = UPPER(p_nume)
+    AND UPPER(u.prenume) = UPPER(p_prenume)
+    AND TRUNC(f.data) = TRUNC(p_data_factura)
+    GROUP BY  f.factura_id, f.suma_totala;
+    RETURN v_status;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Utilizatorul nu exista sau nu are factura la data respectiva');
+        RETURN -1;
+    WHEN TOO_MANY_ROWS THEN
+        dbms_output.put_line('Utilizatorul are mai multe facturi la data respectiva');
+        RETURN -1;
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20081, 'Eroare: ' || SQLERRM);
+        RETURN -1;
+END;
+/
+DECLARE
+BEGIN
+    dbms_output.put_line('Status factura:' ||ex8_status_factura('Neagu', 'Bianca', '20-DEC-2024'));
+    dbms_output.put_line('Status factura:' ||ex8_status_factura('Toma', 'Alexandru', '13-MAR-2025'));
+    dbms_output.put_line('Status factura:' ||ex8_status_factura('Apostu', 'Melania', '03-JAN-2025'));
+    dbms_output.put_line('Status factura:' ||ex8_status_factura('Apostu', 'Melania', '28-FEB-2025'));
+    dbms_output.put_line('Status factura:' ||ex8_status_factura('Aposgtu', 'Melania', '28-FEB-2025'));
+    dbms_output.put_line('Status factura:' ||ex8_status_factura(null, 'Melania', '28-FEB-2025'));
+END;
+/
+
+BEGIN
+    dbms_output.put_line(ex8_status_factura('Apostu', 'Melania', '24-AUG-2026'));
+END;
+/
+
+
+
+-- Exercitiul 9
+-- exceptii proprii
+
+
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id)
+VALUES('Rock Legends 2026', DATE '2026-10-24', 'Concert rock cu artisti nationali si invitati speciali.',
+    20000, 16, 7, 50);
+
+INSERT INTO tip_bilet(pret,eveniment_id,categorie_id)
+SELECT
+    500, 480, categorie_id
+FROM categorie
+WHERE UPPER(nume) = 'VIP';
+
+INSERT INTO tip_bilet(pret, eveniment_id,categorie_id)
+SELECT
+    220, 480, categorie_id
+FROM categorie
+WHERE nume = 'General Acces';
+
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id)
+VALUES('Romanian Pop Stars 2026', DATE '2026-11-28', 'Concert pop cu mai multi artisti romani si show multimedia.',
+    3500, 12, 6, 55);
+
+INSERT INTO tip_bilet(pret, eveniment_id, categorie_id)
+SELECT 
+    650, seq_eveniment.CURRVAL, categorie_id
+FROM categorie
+WHERE UPPER(nume) = 'VIP';
+
+INSERT INTO tip_bilet(pret, eveniment_id, categorie_id)
+SELECT
+    450, seq_eveniment.CURRVAL, categorie_id
+FROM categorie
+WHERE nume = 'General Acces';
+
+
+INSERT INTO eveniment(titlu, data, descriere, nr_bilete, restrictie_varsta, organizator_id, locatie_id)
+VALUES('Summer Music Festival 2027', DATE '2027-07-17', 'Festival de muzica pop',
+    25000, 16, 7, 51);
+
+INSERT INTO tip_bilet(pret, eveniment_id, categorie_id)
+SELECT
+    800, seq_eveniment.CURRVAL, categorie_id
+FROM categorie
+WHERE UPPER(nume) = 'VIP';
+
+INSERT INTO tip_bilet(pret, eveniment_id, categorie_id)
+SELECT
+    350, seq_eveniment.CURRVAL, categorie_id
+FROM categorie
+WHERE nume = 'General Acces';
+
+INSERT INTO utilizator(nume, prenume, email)
+VALUES ('Popescu', 'Andrei', 'andrei.minor@test.ro');
+
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare, ocupatie)
+VALUES (seq_utilizator.CURRVAL, TO_DATE('10-05-2011', 'DD-MM-YYYY'), SYSDATE, 'Elev');
+
+INSERT INTO utilizator(nume, prenume, email)
+VALUES ('Ionescu', 'Maria', 'maria.data@test.ro');
+
+INSERT INTO client(utilizator_id, data_nasterii, data_inregistrare, ocupatie)
+VALUES (seq_utilizator.CURRVAL, NULL, SYSDATE, 'Student');
+
+CREATE OR REPLACE PROCEDURE ex9_factura(p_utilizator_id IN NUMBER, p_eveniment_id IN NUMBER,
+    p_categorie IN VARCHAR2, p_nr_bilete IN NUMBER)
+IS
+    e_numar_invalid EXCEPTION;
+    e_eveniment_incheiat EXCEPTION;
+    e_varsta_insuficienta EXCEPTION;
+    e_bilete_insuficiente EXCEPTION;
+    e_data_nasterii_lipsa EXCEPTION;
+    
+    v_data_nasterii client.data_nasterii%TYPE;
+    v_nume_client utilizator.nume%TYPE;
+    v_prenume_client utilizator.prenume%TYPE;
+
+    v_titlu eveniment.titlu%TYPE;
+    v_data_eveniment eveniment.data%TYPE;
+    v_restrictie_varsta eveniment.restrictie_varsta%TYPE;
+    v_nr_total eveniment.nr_bilete%TYPE;
+
+    v_locatie locatie.nume%TYPE;
+    v_oras oras.nume%TYPE;
+
+    v_tip_bilet_id tip_bilet.tip_bilet_id%TYPE;
+    v_pret tip_bilet.pret%TYPE;
+
+    v_varsta NUMBER;
+    v_nr_vandute NUMBER;
+    v_disponibile NUMBER;
+
+    v_total NUMBER;
+    v_mod_plata factura.mod_plata%TYPE;
+    v_factura_id factura.factura_id%TYPE;
+
+BEGIN
+    IF p_nr_bilete IS NULL OR p_nr_bilete <= 0 THEN
+        RAISE e_numar_invalid;
+    END IF;
+
+    SELECT cl.data_nasterii, u.nume, u.prenume,
+        tb.tip_bilet_id, tb.pret,
+        e.titlu, e.data, e.restrictie_varsta, e.nr_bilete,
+        l.nume, o.nume
+    INTO
+        v_data_nasterii, v_nume_client, v_prenume_client,
+        v_tip_bilet_id, v_pret,
+        v_titlu, v_data_eveniment, v_restrictie_varsta, v_nr_total,
+        v_locatie, v_oras
+    FROM client cl
+    JOIN utilizator u ON u.utilizator_id = cl.utilizator_id
+    JOIN tip_bilet tb ON tb.eveniment_id = p_eveniment_id
+    JOIN categorie c ON c.categorie_id = tb.categorie_id
+    JOIN eveniment e ON e.eveniment_id = tb.eveniment_id
+    JOIN locatie l ON l.locatie_id = e.locatie_id
+    JOIN oras o ON o.oras_id = l.oras_id
+    WHERE cl.utilizator_id = p_utilizator_id
+      AND e.eveniment_id = p_eveniment_id
+      AND UPPER(c.nume) = UPPER(p_categorie);
+
+    IF v_data_nasterii IS NULL THEN
+        RAISE e_data_nasterii_lipsa;
+    END IF;
+    IF TRUNC(v_data_eveniment) < TRUNC(SYSDATE) THEN
+        RAISE e_eveniment_incheiat;
+    END IF;
+    v_varsta := TRUNC(MONTHS_BETWEEN(v_data_eveniment, v_data_nasterii) / 12);
+    
+    IF NVL(v_restrictie_varsta, 0) > v_varsta THEN
+        RAISE e_varsta_insuficienta;
+    END IF;
+
+    SELECT COUNT(*) INTO v_nr_vandute
+    FROM bilet b
+    JOIN tip_bilet tb ON tb.tip_bilet_id = b.tip_bilet_id
+    WHERE tb.eveniment_id = p_eveniment_id;
+    
+    v_disponibile := v_nr_total - v_nr_vandute;
+    
+    IF p_nr_bilete > v_disponibile THEN
+        RAISE e_bilete_insuficiente;
+    END IF;
+    
+    v_total := v_pret * p_nr_bilete;
+
+    IF v_total < 500 THEN
+        v_mod_plata := 'integral';
+    ELSE
+        v_mod_plata := 'rate';
+    END IF;
+
+    INSERT INTO factura(data, suma_totala, mod_plata, utilizator_id)
+    VALUES(SYSDATE, v_total,v_mod_plata, p_utilizator_id);
+    
+    v_factura_id := seq_factura.CURRVAL;
+    
+    FOR i IN 1 .. p_nr_bilete LOOP
+        INSERT INTO bilet(discount,tip_bilet_id, factura_id)
+        VALUES(0, v_tip_bilet_id, v_factura_id);
+    END LOOP;
+    
+    DBMS_OUTPUT.PUT_LINE('Achizitie cu succes');
+    DBMS_OUTPUT.PUT_LINE('Client: ' || v_nume_client || ' ' || v_prenume_client);
+    DBMS_OUTPUT.PUT_LINE('Factura ID: ' || v_factura_id);
+    DBMS_OUTPUT.PUT_LINE('Eveniment: ' || v_titlu);
+    DBMS_OUTPUT.PUT_LINE('Data evenimentului: ' ||TO_CHAR(v_data_eveniment, 'DD-MM-YYYY'));
+    DBMS_OUTPUT.PUT_LINE('Locatie: ' || v_locatie || ', ' ||v_oras);
+    DBMS_OUTPUT.PUT_LINE('Categorie: '|| p_categorie);
+    DBMS_OUTPUT.PUT_LINE('Pret/bilet: ' || v_pret || ' lei');
+    DBMS_OUTPUT.PUT_LINE('Numar bilete cumparate: ' ||p_nr_bilete);
+    DBMS_OUTPUT.PUT_LINE('Bilete ramase dupa achizitie: ' || (v_disponibile - p_nr_bilete));
+    DBMS_OUTPUT.PUT_LINE('Total factura: ' || v_total || ' lei');
+    DBMS_OUTPUT.PUT_LINE('Mod plata: ' || v_mod_plata);
+EXCEPTION
+    WHEN e_numar_invalid THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: numarul de bilete trebuie sa fie '|| 'strict pozitiv');
+    WHEN e_eveniment_incheiat THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: evenimentul "' || v_titlu || '" a avut deja loc la data de ' ||
+            TO_CHAR(v_data_eveniment, 'DD-MM-YYYY') || '. Nu se mai pot cumpara bilete');
+    WHEN e_varsta_insuficienta THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: clientul are ' || v_varsta || ' ani la data evenimentului, '
+            || 'iar varsta minima necesara este ' || v_restrictie_varsta || ' ani');
+    WHEN e_bilete_insuficiente THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: nu exista suficiente bilete disponibile');
+        DBMS_OUTPUT.PUT_LINE('Numar total bilete: ' || v_nr_total);
+        DBMS_OUTPUT.PUT_LINE('Bilete deja vandute: ' || v_nr_vandute);
+        DBMS_OUTPUT.PUT_LINE('Bilete disponibile: ' || v_disponibile);
+        DBMS_OUTPUT.PUT_LINE('Bilete solicitate: ' || p_nr_bilete);
+
+    WHEN e_data_nasterii_lipsa THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: clientul nu are data nasterii completata, '
+            || ' nu poate fi verificata restrictia de varsta');
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: combinatia client - eveniment - categorie ' || 'nu exista');
+        DBMS_OUTPUT.PUT_LINE('Verificati ID-ul clientului, ID-ul evenimentului ' || 'si denumirea categoriei');
+    WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare: au fost gasite mai multe tipuri de bilete '
+            || 'cu aceeasi categorie pentru acelasi eveniment');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Eroare neasteptata');
+        DBMS_OUTPUT.PUT_LINE('Cod eroare: ' || SQLCODE);
+        DBMS_OUTPUT.PUT_LINE('Mesaj: ' || SQLERRM);
+END ex9_factura;
+/
+
+
+BEGIN
+    ex9_factura(p_utilizator_id => 15, p_eveniment_id => 480,
+        p_categorie => 'General Acces', p_nr_bilete => 2);
+END;
+/
+
+BEGIN
+    ex9_factura(p_utilizator_id => 15, p_eveniment_id => 402, 
+        p_categorie => '10 km', p_nr_bilete => 2);
+END;
+/
+
+BEGIN
+    ex9_factura(p_utilizator_id => 15, p_eveniment_id => 401,
+        p_categorie => 'General Acces', p_nr_bilete => 1);
+END;
+/
+
+BEGIN
+    ex9_factura(p_utilizator_id => 15, p_eveniment_id => 481,
+        p_categorie => 'General Acces',p_nr_bilete => 0);
+END;
+/
+
+BEGIN
+    ex9_factura(p_utilizator_id => 15, p_eveniment_id => 480,
+        p_categorie => 'General Acces',p_nr_bilete => 30000);
+END;
+/
+
+BEGIN
+    ex9_factura(p_utilizator_id => 102, p_eveniment_id => 480,
+        p_categorie => 'VIP', p_nr_bilete => 1);
+END;
+/
+
+BEGIN
+    ex9_factura(p_utilizator_id => 103, p_eveniment_id => 480,
+        p_categorie => 'General Acces', p_nr_bilete => 2);
+END;
+/
+
+
+
+-- Exercitiul 10
+-- trigger LMD la nivel de comanda
+
+CREATE TABLE log_lmd (
+  id NUMBER PRIMARY KEY,
+  tabel VARCHAR2(30),
+  operatie VARCHAR2(10),
+  user_name VARCHAR2(30),
+  data DATE,
+  status VARCHAR2(10),
+  mesaj VARCHAR2(200)
+);
+
+CREATE SEQUENCE log_seq
+START WITH 1
+INCREMENT BY 1
+NOCYCLE;
+
+CREATE OR REPLACE TRIGGER ex10_lmd_1
+BEFORE INSERT OR UPDATE OR DELETE ON sponsorizare
+DECLARE
+    PRAGMA AUTONOMOUS_TRANSACTION;
+    comanda  VARCHAR2(10) := CASE
+                              WHEN INSERTING THEN 'insert'
+                              WHEN UPDATING  THEN 'update'
+                              WHEN DELETING  THEN 'detele'
+                          END;
+    ora VARCHAR2(4) := TO_NUMBER(TO_CHAR(SYSDATE, 'HH24'));
+BEGIN
+    IF ora < 1 OR ora > 6 THEN
+        INSERT INTO log_lmd(id, tabel, operatie, user_name, data, status, mesaj)
+        VALUES (log_seq.NEXTVAL, 'sponsorizare', comanda, USER, SYSDATE, 'blocat', 'In afara programului: ' || TO_CHAR(SYSDATE, 'HH24:MI'));
+        COMMIT;
+        RAISE_APPLICATION_ERROR(-20046, 'Operatiile sunt permise doar in program');
+    ELSE
+        INSERT INTO log_lmd(id, tabel, operatie, user_name, data, status, mesaj)
+        VALUES (log_seq.NEXTVAL, 'sponsorizare', comanda, USER, SYSDATE, 'permis', 'In program: ' || TO_CHAR(SYSDATE, 'HH24:MI'));
+        COMMIT;
+    END IF;
+END;
+/
+
+INSERT INTO sponsorizare(eveniment_id, sponsor_id, produs_id) VALUES(407, 200, 300);
+
+INSERT INTO sponsorizare(eveniment_id, sponsor_id, produs_id) VALUES(408, 200, 300);
+SELECT * FROM log_lmd; 
+
+-- Exercitiul 11
+-- trigger LMD la nivel de linie
+
+CREATE OR REPLACE TRIGGER ex11_program_compound
+FOR INSERT OR UPDATE ON program
+COMPOUND TRIGGER
+
+    TYPE t_artisti IS TABLE OF BOOLEAN INDEX BY PLS_INTEGER;
+    v_artisti t_artisti;
+
+    TYPE t_modificare IS RECORD (
+        operatie VARCHAR2(10),
+        eveniment_id program.eveniment_id%TYPE,
+        artist_id program.artist_id%TYPE,
+        inceput_vechi program.ora_inceput%TYPE,
+        final_vechi program.ora_final%TYPE,
+        inceput_nou program.ora_inceput%TYPE,
+        final_nou program.ora_final%TYPE);
+
+    TYPE t_lista_modificari IS TABLE OF t_modificare INDEX BY PLS_INTEGER;
+
+    v_modificari t_lista_modificari;
+    v_nr_modificari PLS_INTEGER := 0;
+
+    BEFORE EACH ROW IS
+    BEGIN
+        IF :NEW.ora_inceput IS NULL OR :NEW.ora_final IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20040,'Ora de inceput si ora de final sunt obligatorii');
+        END IF;
+        IF :NEW.ora_final <= :NEW.ora_inceput THEN
+            RAISE_APPLICATION_ERROR(-20041,'Ora de final trebuie sa fie strict mai mare ' || 'decat ora de inceput');
+        END IF;
+    END BEFORE EACH ROW;
+    AFTER EACH ROW IS
+    BEGIN
+        v_nr_modificari := v_nr_modificari + 1;
+
+        IF INSERTING THEN
+            v_artisti(:NEW.artist_id) := TRUE;
+            v_modificari(v_nr_modificari).operatie := 'INSERT';
+            v_modificari(v_nr_modificari).eveniment_id := :NEW.eveniment_id;
+            v_modificari(v_nr_modificari).artist_id := :NEW.artist_id;
+            v_modificari(v_nr_modificari).inceput_nou := :NEW.ora_inceput;
+            v_modificari(v_nr_modificari).final_nou := :NEW.ora_final;
+
+        ELSIF UPDATING THEN
+            v_artisti(:OLD.artist_id) := TRUE;
+            v_artisti(:NEW.artist_id) := TRUE;
+
+            v_modificari(v_nr_modificari).operatie := 'UPDATE';
+            v_modificari(v_nr_modificari).eveniment_id := :NEW.eveniment_id;
+            v_modificari(v_nr_modificari).artist_id := :NEW.artist_id;
+            v_modificari(v_nr_modificari).inceput_vechi := :OLD.ora_inceput;
+            v_modificari(v_nr_modificari).final_vechi := :OLD.ora_final;
+            v_modificari(v_nr_modificari).inceput_nou := :NEW.ora_inceput;
+            v_modificari(v_nr_modificari).final_nou := :NEW.ora_final;
+        END IF;
+    END AFTER EACH ROW;
+    AFTER STATEMENT IS
+        v_artist_id PLS_INTEGER;
+        v_final_precedent program.ora_final%TYPE;
+        v_oras_precedent oras.oras_id%TYPE;
+        v_titlu_precedent eveniment.titlu%TYPE;
+        v_nume_oras_precedent oras.nume%TYPE;
+
+        v_diferenta_ore NUMBER;
+        v_nume_artist artist.nume%TYPE;
+        v_nume_eveniment eveniment.titlu%TYPE;
+
+    BEGIN
+        v_artist_id := v_artisti.FIRST;
+        WHILE v_artist_id IS NOT NULL LOOP
+            v_final_precedent := NULL;
+            v_oras_precedent := NULL;
+            v_titlu_precedent := NULL;
+            v_nume_oras_precedent := NULL;
+            FOR r IN (
+                SELECT p.eveniment_id, p.ora_inceput, p.ora_final,
+                    e.titlu, o.oras_id, o.nume AS nume_oras
+                FROM program p
+                JOIN eveniment e ON e.eveniment_id = p.eveniment_id
+                JOIN locatie l ON l.locatie_id = e.locatie_id
+                JOIN oras o ON o.oras_id = l.oras_id
+                WHERE p.artist_id = v_artist_id
+                ORDER BY p.ora_inceput
+            ) LOOP
+                IF v_final_precedent IS NOT NULL THEN
+                    IF r.ora_inceput < v_final_precedent THEN
+                        RAISE_APPLICATION_ERROR(-20042, 'Artistul cu ID ' || v_artist_id
+                            || ' are doua prestatii care se suprapun: ' || v_titlu_precedent || ' si ' || r.titlu);
+                    END IF;
+                    v_diferenta_ore := (r.ora_inceput - v_final_precedent) * 24;
+                    IF r.oras_id = v_oras_precedent THEN
+                        IF v_diferenta_ore < 1 THEN
+                            RAISE_APPLICATION_ERROR(-20043,'Artistul cu ID ' || v_artist_id || ' are doar '
+                                || ROUND(v_diferenta_ore, 2) || ' ore intre doua prestatii ' || 'din acelasi oras. '
+                                || 'Este necesara minimum o ora');
+                        END IF;
+                    ELSE
+                        IF v_diferenta_ore < 24 THEN
+                            RAISE_APPLICATION_ERROR(-20044,'Artistul cu ID ' || v_artist_id || ' are doar '
+                                || ROUND(v_diferenta_ore, 2) || ' ore pentru deplasarea de la ' || v_nume_oras_precedent
+                                || ' la ' || r.nume_oras || '. Sunt necesare minimum 24 de ore');
+                        END IF;
+                    END IF;
+                END IF;
+                v_final_precedent := r.ora_final;
+                v_oras_precedent := r.oras_id;
+                v_titlu_precedent := r.titlu;
+                v_nume_oras_precedent := r.nume_oras;
+            END LOOP;
+            v_artist_id := v_artisti.NEXT(v_artist_id);
+        END LOOP;
+        DBMS_OUTPUT.PUT_LINE('Modificarile programului sunt valide');
+        DBMS_OUTPUT.PUT_LINE('Numar linii afectate: ' || v_nr_modificari);
+
+        FOR i IN 1 .. v_nr_modificari LOOP
+            SELECT a.nume, e.titlu
+            INTO v_nume_artist, v_nume_eveniment
+            FROM artist a
+            JOIN eveniment e ON e.eveniment_id = v_modificari(i).eveniment_id
+            WHERE a.artist_id = v_modificari(i).artist_id;
+
+            IF v_modificari(i).operatie = 'UPDATE' THEN
+                DBMS_OUTPUT.PUT_LINE('Artist: ' || v_nume_artist || ' | Eveniment: ' || v_nume_eveniment);
+                DBMS_OUTPUT.PUT_LINE('Program vechi: ' || TO_CHAR(v_modificari(i).inceput_vechi,'DD-MM-YYYY HH24:MI')
+                    || ' - ' || TO_CHAR(v_modificari(i).final_vechi,'DD-MM-YYYY HH24:MI'));
+                DBMS_OUTPUT.PUT_LINE('Program nou: ' || TO_CHAR(v_modificari(i).inceput_nou,'DD-MM-YYYY HH24:MI')
+                    || ' - ' || TO_CHAR(v_modificari(i).final_nou,'DD-MM-YYYY HH24:MI'));
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('Artist: ' || v_nume_artist || ' | Eveniment: ' || v_nume_eveniment
+                    || ' | Program: ' || TO_CHAR(v_modificari(i).inceput_nou,'DD-MM-YYYY HH24:MI')
+                    || ' - ' || TO_CHAR(v_modificari(i).final_nou,'DD-MM-YYYY HH24:MI'));
+            END IF;
+        END LOOP;
+    END AFTER STATEMENT;
+END ex11_program_compound;
+/
+
+SET SERVEROUTPUT ON;
+UPDATE program
+SET ora_inceput = ora_inceput + 1/24,
+    ora_final   = ora_final   + 1/24
+WHERE eveniment_id = 401;
+
+ROLLBACK;
+
+UPDATE program
+SET ora_inceput = TO_DATE('21-04-2025 20:00', 'DD-MM-YYYY HH24:MI'),
+    ora_final   = TO_DATE('21-04-2025 19:00', 'DD-MM-YYYY HH24:MI')
+WHERE eveniment_id = 401 AND artist_id = 160;
+  
+UPDATE program
+SET ora_inceput = ora_inceput - 15/1440,
+    ora_final   = ora_final   - 15/1440
+WHERE eveniment_id = 401 AND artist_id = 160;
+  
+UPDATE program
+SET ora_inceput = ora_inceput - 1/24,
+    ora_final   = ora_final   - 1/24
+WHERE eveniment_id = 460 AND artist_id = 160;
+  
+UPDATE program
+SET ora_inceput = TO_DATE('21-04-2025 18:30', 'DD-MM-YYYY HH24:MI'),
+    ora_final = TO_DATE('21-04-2025 19:40', 'DD-MM-YYYY HH24:MI')
+WHERE eveniment_id = 401 AND artist_id = 160;
+
+-- Exercitiul 12
+--trigger LDD
+
+CREATE TABLE log_ddl (
+    tabel_nou VARCHAR2(30),
+    tabel_sursa VARCHAR2(30),
+    actiune VARCHAR2(100),
+    user_name VARCHAR2(30),
+    data_creare DATE
+);
+
+CREATE OR REPLACE TRIGGER ex12_ldd
+BEFORE CREATE OR ALTER OR DROP ON SCHEMA
+DECLARE
+    comanda VARCHAR2(30) := UPPER(ORA_SYSEVENT);
+    nume_tabel VARCHAR2(128) := UPPER(ORA_DICT_OBJ_NAME);
+    tip_obiect VARCHAR2(30) := UPPER(ORA_DICT_OBJ_TYPE);
+
+    e_test BOOLEAN := (SUBSTR(nume_tabel, 1, 5) = 'TEST_');
+    tabel_sursa VARCHAR2(128);
+    tabel_test VARCHAR2(128);
+
+    exista_sursa NUMBER;
+    exista_test NUMBER;
+BEGIN
+    IF tip_obiect <> 'TABLE' THEN
+        RETURN;
+    END IF;
+
+    IF comanda = 'CREATE' AND e_test THEN
+        tabel_sursa := SUBSTR(nume_tabel, 6);
+        SELECT COUNT(*) INTO exista_sursa
+        FROM user_tables
+        WHERE table_name = tabel_sursa;
+
+        IF exista_sursa = 0 THEN
+            INSERT INTO log_ddl(tabel_nou, tabel_sursa, actiune, user_name, data_creare)
+            VALUES (nume_tabel, tabel_sursa, 'create_test_fara_sursa', USER, SYSDATE);
+            RAISE_APPLICATION_ERROR(-20052, 'Nu poti crea ' || nume_tabel || ' deoarece tabela sursa ' || tabel_sursa || ' nu exista');
+        ELSE
+            INSERT INTO log_ddl(tabel_nou, tabel_sursa, actiune, user_name, data_creare)
+            VALUES (nume_tabel, tabel_sursa, 'creare_test_ok', USER, SYSDATE);
+        END IF;
+    END IF;
+
+    IF (NOT e_test) AND comanda IN ('ALTER','DROP','TRUNCATE') THEN
+        tabel_test := 'TEST_' || nume_tabel;
+        SELECT COUNT(*)
+        INTO exista_test
+        FROM user_tables
+        WHERE table_name = tabel_test;
+
+        IF exista_test = 0 THEN
+            INSERT INTO log_ddl(tabel_nou, tabel_sursa, actiune, user_name, data_creare)
+            VALUES (nume_tabel, tabel_test, 'modificare_blocata_fara_test', USER, SYSDATE);
+            RAISE_APPLICATION_ERROR(-20054, 'Nu poti '||comanda||' tabela '||nume_tabel||' deoarece nu exista tabela de test '||tabel_test||'.');
+        ELSE
+            INSERT INTO log_ddl(tabel_nou, tabel_sursa, actiune, user_name, data_creare)
+            VALUES (nume_tabel, tabel_test, 'modificare_ok_cu_test', USER, SYSDATE);
+        END IF;
+    END IF;
+END;
+/
+
+
+CREATE TABLE test_abc (id NUMBER);
+
+CREATE TABLE test_bilet (id NUMBER);
+
+ALTER TABLE bilet
+ADD testproba VARCHAR2(30);
+
+DROP TABLE test_bilet;
+
+
+-- Exercitiul 13
+
+
+CREATE OR REPLACE PACKAGE ex13_pachet
+AS
+    TYPE rec_bilete IS RECORD(
+        tip_bilet_id tip_bilet.tip_bilet_id%TYPE,
+        nr_bilete NUMBER,
+        discount_bilet bilet.discount%TYPE);
+    TYPE t_bilete IS TABLE OF rec_bilete;
+    TYPE cursor_d IS REF CURSOR;
+
+    
+    FUNCTION calcul_total(p_bilete IN t_bilete) RETURN NUMBER;
+    
+    FUNCTION verifica_disp_even(p_bilete IN t_bilete, p_even_id OUT eveniment.eveniment_id%TYPE)
+    RETURN VARCHAR2;
+    
+    PROCEDURE plan_facturi(p_factura_id IN factura.factura_id%TYPE, p_data_inceput IN DATE DEFAULT SYSDATE, p_rc OUT cursor_d,
+                            p_luni OUT NUMBER, p_rata OUT NUMBER);
+    PROCEDURE creeaza_factura_bilete(
+        p_utilizator_id IN utilizator.utilizator_id%TYPE,
+        p_data IN factura.data%TYPE DEFAULT SYSDATE,
+        p_bilete IN t_bilete,
+        p_factura_id OUT factura.factura_id%TYPE,
+        p_total OUT factura.suma_totala%TYPE,
+        p_luni_rate OUT NUMBER,
+        p_val_rata OUT NUMBER,
+        p_plan_rc OUT cursor_d
+        );
+END ex13_pachet;
+/
+
+CREATE OR REPLACE PACKAGE BODY ex13_pachet AS
+
+    FUNCTION calcul_total(p_bilete IN t_bilete)
+    RETURN NUMBER
+    IS
+        v_total NUMBER := 0;
+        v_pret tip_bilet.pret%TYPE;
+        v_discount_bilet bilet.discount%TYPE;
+    BEGIN
+        FOR i IN 1..p_bilete.COUNT LOOP
+            SELECT pret INTO v_pret
+            FROM tip_bilet
+            WHERE tip_bilet_id = p_bilete(i).tip_bilet_id;
+            
+            v_discount_bilet := NVL(p_bilete(i).discount_bilet, 0);
+            IF v_discount_bilet < 0 OR v_discount_bilet > 100 THEN
+                RAISE_APPLICATION_ERROR(-20070, 'Discountul '||v_discount_bilet|| ' nu e valid');
+            END IF;
+            
+            v_total := v_total + (v_pret * p_bilete(i).nr_bilete)*(1-p_bilete(i).discount_bilet/100);
+            
+            
+        END LOOP;
+        RETURN v_total;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                RAISE_APPLICATION_ERROR(-20071, 'Tip bilet invalid inserat');
+    END calcul_total;
+    
+    FUNCTION verifica_disp_even(p_bilete IN t_bilete, p_even_id OUT eveniment.eveniment_id%TYPE)
+    RETURN VARCHAR2
+    IS
+        v_ev_id eveniment.eveniment_id%TYPE;
+        v_ev_id2 eveniment.eveniment_id%TYPE;
+        v_nr_bilete_cerute NUMBER := 0; 
+        
+        v_nr_bilete eveniment.nr_bilete%TYPE;
+        v_nr_vandute NUMBER := 0;
+        v_ramase NUMBER;
+        v_titlu eveniment.titlu%TYPE;
+    BEGIN
+        IF p_bilete IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20072, 'Nu exista bilete in tabel');
+        END IF;
+        
+        
+        
+        SELECT e.eveniment_id, e.titlu INTO v_ev_id, v_titlu
+        FROM tip_bilet tb
+        JOIN eveniment e ON e.eveniment_id = tb.eveniment_id
+        WHERE tb.tip_bilet_id = p_bilete(1).tip_bilet_id;
+        
+        FOR i IN 1..p_bilete.COUNT LOOP
+        
+            SELECT eveniment_id INTO v_ev_id2
+            FROM tip_bilet
+            WHERE tip_bilet_id = p_bilete(i).tip_bilet_id;
+            
+            IF v_ev_id <> v_ev_id2 THEN
+                RAISE_APPLICATION_ERROR(-20073, 'Nu se pot adauga in aceeasi factura, bilete de la diferite evenimente');
+            END IF;
+            
+            v_nr_bilete_cerute := v_nr_bilete_cerute + p_bilete(i).nr_bilete; 
+            
+        END LOOP;
+        p_even_id := v_ev_id;
+        SELECT COUNT(*) INTO v_nr_vandute
+        FROM bilet b
+        JOIN tip_bilet tb ON b.tip_bilet_id = tb.tip_bilet_id
+        WHERE tb.eveniment_id = v_ev_id;
+        
+        SELECT nr_bilete INTO v_nr_bilete
+        FROM eveniment
+        WHERE eveniment_id = v_ev_id;
+        
+        v_ramase := v_nr_bilete - v_nr_vandute;
+        
+        IF v_ramase < v_nr_bilete_cerute THEN
+            RETURN 'Nu sunt disponibile '||v_nr_bilete_cerute||' bilete la: '|| v_titlu ||', ramase: '||v_ramase;
+        END IF;
+        RETURN 'OK';
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RETURN 'Tip bilet sau eveniment inexistent';
+        WHEN TOO_MANY_ROWS THEN
+            RETURN 'Date incorecte';
+        WHEN OTHERS THEN
+            RAISE_APPLICATION_ERROR(-20075, 'Eroare: '||SQLERRM);
+    END verifica_disp_even;
+    
+    PROCEDURE plan_facturi(p_factura_id IN factura.factura_id%TYPE, p_data_inceput IN DATE DEFAULT SYSDATE, p_rc OUT cursor_d,
+                            p_luni OUT NUMBER, p_rata OUT NUMBER)
+    IS
+        v_total factura.suma_totala%TYPE;
+        v_platit NUMBER;
+        v_rest NUMBER;
+        v_sql CLOB;
+    BEGIN
+        SELECT suma_totala INTO v_total
+        FROM factura
+        WHERE factura_id = p_factura_id;
+        
+        SELECT NVL(SUM(p.suma_platita), 0) INTO v_platit
+        FROM plata p
+        WHERE factura_id = p_factura_id;
+        
+        v_rest := v_total - v_platit;
+        
+        IF v_rest < 600 THEN
+            p_luni := 3;
+        ELSIF v_rest < 900 THEN
+            p_luni := 6;
+        ELSIF v_rest < 1500 THEN
+            p_luni := 9;
+        ELSIF v_rest >= 1500 THEN
+            p_luni := 18;
+        END IF;
+        
+        p_rata := ROUND(v_rest/p_luni, 2);
+        
+        v_sql := 'SELECT ADD_MONTHS(TRUNC(:data_inceput), level -1) AS data_rata,
+                    CASE
+                        WHEN level < :luni THEN :rata
+                        ELSE ROUND(:rest - (:rata * (:luni- 1)), 2)
+                    END AS suma_rata
+                    FROM DUAL
+                    CONNECT BY level <= :luni
+                    ORDER BY data_rata';
+        
+        OPEN p_rc FOR v_sql
+          USING p_data_inceput, p_luni, p_rata, v_rest, p_rata, p_luni, p_luni;
+    
+      EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+          RAISE_APPLICATION_ERROR(-20320, 'Factura nu exista: ' || p_factura_id);
+    END plan_facturi;
+    
+    PROCEDURE creeaza_factura_bilete(
+        p_utilizator_id IN utilizator.utilizator_id%TYPE,
+        p_data IN factura.data%TYPE DEFAULT SYSDATE,
+        p_bilete IN t_bilete,
+        p_factura_id OUT factura.factura_id%TYPE,
+        p_total OUT factura.suma_totala%TYPE,
+        p_luni_rate OUT NUMBER,
+        p_val_rata OUT NUMBER,
+        p_plan_rc OUT cursor_d
+        )
+    IS
+        v_factura_id_nou factura.factura_id%TYPE;
+        v_bilet_id_nou bilet.bilet_id%TYPE;
+        v_eveniment_id eveniment.eveniment_id%TYPE;
+        v_verificat VARCHAR2(4000);
+    BEGIN
+        IF p_utilizator_id IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20078, 'utilizator_id este obligatoriu');
+        END IF;
+        
+        v_verificat := verifica_disp_even(p_bilete, v_eveniment_id);
+        IF v_verificat <> 'OK' THEN
+            RAISE_APPLICATION_ERROR(-20079, v_verificat);
+        END IF;
+        
+        p_total := calcul_total(p_bilete);
+        SELECT seq_factura.NEXTVAL INTO v_factura_id_nou
+        FROM dual;
+        INSERT INTO factura(factura_id, utilizator_id, suma_totala, data) VALUES(v_factura_id_nou, p_utilizator_id, p_total, p_data);
+        
+        FOR i IN 1..p_bilete.COUNT LOOP
+            FOR j IN 1..p_bilete(i).nr_bilete LOOP
+                INSERT INTO bilet(tip_bilet_id, factura_id, discount) VALUES(p_bilete(i).tip_bilet_id,v_factura_id_nou, p_bilete(i).discount_bilet);
+            END LOOP;
+        END LOOP;
+        p_factura_id := v_factura_id_nou;
+        plan_facturi(
+          p_factura_id => v_factura_id_nou,
+          p_data_inceput => p_data,
+          p_rc         => p_plan_rc,
+          p_luni       => p_luni_rate,
+          p_rata       => p_val_rata
+        );
+    
+      EXCEPTION
+        WHEN OTHERS THEN
+          RAISE;
+    END creeaza_factura_bilete;
+END ex13_pachet;
+/
+
+SET SERVEROUTPUT ON;
+VAR plan REFCURSOR;
+
+DECLARE
+    v_bilete ex13_pachet.t_bilete := ex13_pachet.t_bilete();
+    v_factura factura.factura_id%TYPE;
+    v_total NUMBER;
+    v_luni NUMBER;
+    v_rata NUMBER;
+BEGIN
+    v_bilete.EXTEND(2);
+    v_bilete(1).tip_bilet_id := 700; v_bilete(1).nr_bilete := 1; v_bilete(1).discount_bilet := 15;
+    v_bilete(2).tip_bilet_id :=701; v_bilete(2).nr_bilete := 2; v_bilete(2).discount_bilet := 0;
+
+    ex13_pachet.creeaza_factura_bilete(
+        p_utilizator_id => 86,
+        p_data          => SYSDATE,
+        p_bilete      => v_bilete,
+        p_factura_id    => v_factura,
+        p_total         => v_total,
+        p_luni_rate     => v_luni,
+        p_val_rata      => v_rata,
+        p_plan_rc       => :plan
+      );
+
+    dbms_output.put_line('Factura=' || v_factura || ', total=' || v_total);
+    dbms_output.put_line('Plan recomandat: ' || v_luni || ' luni, rata ~ ' || v_rata);
+END;
+/
+PRINT plan;
