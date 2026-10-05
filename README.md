@@ -1,10 +1,6 @@
 # Event-Management-Database-Oracle-PL-SQL
 An Oracle database project exploring SQL, PL/SQL, database design, triggers, cursors, collections, and stored programs.
 
-# Event Management Database
-
-A relational database project built with **Oracle Database and PL/SQL**, focused on learning and applying database design, SQL, and procedural database programming.
-
 ## About
 
 This project explores how a relational database can be designed and implemented for an event management system.
